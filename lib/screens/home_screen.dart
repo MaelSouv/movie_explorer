@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
+import '../providers/theme_provider.dart';
 import '../services/omdb_api_service.dart';
 import 'favorites_screen.dart';
 import 'search_screen.dart';
@@ -32,6 +34,21 @@ class _HomeScreenState extends State<HomeScreen> {
         title: Text(titles[_currentIndex]),
         centerTitle: true,
         elevation: 0,
+        actions: [
+          Consumer<ThemeProvider>(
+            builder: (context, themeProvider, child) {
+              return IconButton(
+                icon: Icon(
+                  themeProvider.isDarkMode
+                      ? Icons.light_mode_rounded
+                      : Icons.dark_mode_rounded,
+                ),
+                onPressed: () => themeProvider.toggleTheme(),
+                tooltip: 'Changer le thème',
+              );
+            },
+          ),
+        ],
       ),
       drawer: Drawer(
         child: SafeArea(
@@ -98,6 +115,26 @@ class _HomeScreenState extends State<HomeScreen> {
                 isSelected: _currentIndex == 1,
                 onTap: () => _selectPage(1),
               ),
+              const Spacer(),
+              const Divider(indent: 20, endIndent: 20),
+              Consumer<ThemeProvider>(
+                builder: (context, themeProvider, child) {
+                  return ListTile(
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 24),
+                    leading: Icon(
+                      themeProvider.isDarkMode
+                          ? Icons.dark_mode_rounded
+                          : Icons.light_mode_rounded,
+                    ),
+                    title: const Text('Thème Sombre'),
+                    trailing: Switch(
+                      value: themeProvider.isDarkMode,
+                      onChanged: (value) => themeProvider.toggleTheme(),
+                    ),
+                  );
+                },
+              ),
+              const SizedBox(height: 16),
             ],
           ),
         ),
