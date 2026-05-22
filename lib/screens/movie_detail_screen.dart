@@ -40,21 +40,9 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
   Widget build(BuildContext context) {
     final favoritesProvider = context.watch<FavoritesProvider>();
     final isFavorite = favoritesProvider.isFavorite(widget.movie.imdbId);
+    final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Detail du film'),
-        actions: <Widget>[
-          IconButton(
-            onPressed: () {
-              favoritesProvider.toggleFavorite(widget.movie);
-            },
-            icon: Icon(isFavorite ? Icons.star : Icons.star_border),
-            color: Colors.amber,
-            tooltip: isFavorite ? 'Retirer des favoris' : 'Ajouter aux favoris',
-          ),
-        ],
-      ),
       body: FutureBuilder<MovieDetail>(
         future: _detailFuture,
         builder: (context, snapshot) {
@@ -63,103 +51,221 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
           }
 
           if (snapshot.hasError) {
-            return Center(
-              child: Padding(
-                padding: const EdgeInsets.all(24),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: <Widget>[
-                    const Icon(Icons.error_outline, size: 48),
-                    const SizedBox(height: 12),
-                    Text(
-                      snapshot.error.toString(),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 16),
-                    FilledButton(
-                      onPressed: _reload,
-                      child: const Text('Reessayer'),
-                    ),
-                  ],
-                ),
-              ),
-            );
+            return _buildErrorState(snapshot.error.toString());
           }
 
           final detail = snapshot.data;
           if (detail == null) {
-            return const Center(
-              child: Text('Aucun detail disponible pour ce film.'),
-            );
+            return const Center(child: Text('No details available.'));
           }
 
-          return SingleChildScrollView(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                Center(
-                  child: PosterThumbnail(
-                    imageUrl: detail.posterUrl,
-                    width: 180,
-                    height: 270,
+          return CustomScrollView(
+            slivers: [
+              _buildAppBar(detail, isFavorite, favoritesProvider),
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildHeader(detail, theme),
+                      const SizedBox(height: 16),
+                      _buildGenreChips(detail.genre, theme),
+                      const SizedBox(height: 24),
+                      _buildInfoRow(detail, theme),
+                      const SizedBox(height: 32),
+                      _buildSection('Synopsis', detail.plot, theme),
+                      const SizedBox(height: 24),
+                      _buildSection('Director', detail.director, theme),
+                      const SizedBox(height: 16),
+                      _buildSection('Actors', detail.actors, theme),
+                      const SizedBox(height: 80), // Space for FAB
+                    ],
                   ),
                 ),
-                const SizedBox(height: 20),
-                Text(
-                  detail.title,
-                  style: Theme.of(context).textTheme.headlineSmall,
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Annee : ${detail.year}',
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
-                const SizedBox(height: 16),
-                _DetailSection(
-                  label: 'Description',
-                  value: detail.plot,
-                ),
-                const SizedBox(height: 16),
-                _DetailSection(
-                  label: 'Acteurs',
-                  value: detail.actors,
-                ),
-                const SizedBox(height: 16),
-                _DetailSection(
-                  label: 'Note IMDB',
-                  value: detail.imdbRating,
-                ),
-              ],
-            ),
+              ),
+            ],
+          );
+        },
+      ),
+      floatingActionButton: FutureBuilder<MovieDetail>(
+        future: _detailFuture,
+        builder: (context, snapshot) {
+          if (!snapshot.hasData) return const SizedBox.shrink();
+          return FloatingActionButton.extended(
+            onPressed: () => favoritesProvider.toggleFavorite(widget.movie),
+            label: Text(isFavorite ? 'In favorites' : 'Add to favorites'),
+            icon: Icon(isFavorite ? Icons.star_rounded : Icons.star_outline_rounded),
+            backgroundColor: isFavorite ? Colors.amber : theme.colorScheme.primary,
+            foregroundColor: isFavorite ? Colors.black87 : theme.colorScheme.onPrimary,
           );
         },
       ),
     );
   }
-}
 
-class _DetailSection extends StatelessWidget {
-  const _DetailSection({
-    required this.label,
-    required this.value,
-  });
+  Widget _buildAppBar(MovieDetail detail, bool isFavorite, FavoritesProvider favoritesProvider) {
+    return SliverAppBar(
+      expandedHeight: 450,
+      pinned: true,
+      stretch: true,
+      flexibleSpace: FlexibleSpaceBar(
+        stretchModes: const [
+          StretchMode.zoomBackground,
+          StretchMode.blurBackground,
+        ],
+        background: Stack(
+          fit: StackFit.expand,
+          children: [
+            Hero(
+              tag: 'movie-poster-${detail.imdbId}',
+              child: Image.network(
+                detail.posterUrl,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => Container(
+                  color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                  child: const Icon(Icons.movie_rounded, size: 100),
+                ),
+              ),
+            ),
+            const DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Colors.black54,
+                    Colors.transparent,
+                    Colors.transparent,
+                    Colors.black87,
+                  ],
+                  stops: [0.0, 0.2, 0.7, 1.0],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
+  Widget _buildHeader(MovieDetail detail, ThemeData theme) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
-      children: <Widget>[
+      children: [
+        Text(
+          detail.title,
+          style: theme.textTheme.headlineMedium?.copyWith(
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          detail.year,
+          style: theme.textTheme.titleMedium?.copyWith(
+            color: theme.colorScheme.primary,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildGenreChips(String genres, ThemeData theme) {
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: genres.split(',').map((genre) {
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: BoxDecoration(
+            color: theme.colorScheme.secondaryContainer.withOpacity(0.5),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: theme.colorScheme.secondary.withOpacity(0.2)),
+          ),
+          child: Text(
+            genre.trim(),
+            style: theme.textTheme.labelMedium?.copyWith(
+              color: theme.colorScheme.onSecondaryContainer,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  Widget _buildInfoRow(MovieDetail detail, ThemeData theme) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceAround,
+      children: [
+        _buildInfoChip(Icons.star_rounded, detail.imdbRating, 'IMDB Rating', theme),
+        _buildInfoChip(Icons.timer_outlined, detail.runtime, 'Duration', theme),
+        _buildInfoChip(Icons.calendar_today_rounded, detail.released, 'Released', theme),
+      ],
+    );
+  }
+
+  Widget _buildInfoChip(IconData icon, String value, String label, ThemeData theme) {
+    return Column(
+      children: [
+        Icon(icon, color: theme.colorScheme.secondary),
+        const SizedBox(height: 4),
+        Text(
+          value,
+          style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
+        ),
         Text(
           label,
-          style: Theme.of(context).textTheme.titleMedium,
+          style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.outline),
         ),
-        const SizedBox(height: 6),
-        Text(value),
       ],
+    );
+  }
+
+  Widget _buildSection(String title, String content, ThemeData theme) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          content,
+          style: theme.textTheme.bodyLarge?.copyWith(
+            height: 1.5,
+            color: theme.colorScheme.onSurface.withOpacity(0.8),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildErrorState(String error) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.error_outline, size: 64, color: Colors.red),
+            const SizedBox(height: 16),
+            Text(
+              error,
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 16),
+            ),
+            const SizedBox(height: 24),
+            FilledButton.icon(
+              onPressed: _reload,
+              icon: const Icon(Icons.refresh_rounded),
+              label: const Text('Retry'),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

@@ -23,122 +23,50 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final titles = <String>['Movie Explorer', 'Mes favoris'];
+    final theme = Theme.of(context);
+    final titles = <String>['Movie Explorer', 'My favorites'];
     final pages = <Widget>[
       SearchScreen(apiService: widget.apiService),
       FavoritesScreen(apiService: widget.apiService),
     ];
 
     return Scaffold(
+      onDrawerChanged: (isOpened) {
+        if (isOpened) {
+          FocusScope.of(context).unfocus();
+        }
+      },
       appBar: AppBar(
-        title: Text(titles[_currentIndex]),
-        centerTitle: true,
-        elevation: 0,
+        title: Text(
+          titles[_currentIndex],
+          style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+        ),
         actions: [
           Consumer<ThemeProvider>(
             builder: (context, themeProvider, child) {
               return IconButton(
-                icon: Icon(
-                  themeProvider.isDarkMode
-                      ? Icons.light_mode_rounded
-                      : Icons.dark_mode_rounded,
+                icon: AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 300),
+                  transitionBuilder: (child, anim) => RotationTransition(
+                    turns: anim,
+                    child: FadeTransition(opacity: anim, child: child),
+                  ),
+                  child: Icon(
+                    themeProvider.isDarkMode
+                        ? Icons.light_mode_rounded
+                        : Icons.dark_mode_rounded,
+                    key: ValueKey(themeProvider.isDarkMode),
+                  ),
                 ),
                 onPressed: () => themeProvider.toggleTheme(),
-                tooltip: 'Changer le thème',
+                tooltip: 'Change theme',
               );
             },
           ),
+          const SizedBox(width: 8),
         ],
       ),
-      drawer: Drawer(
-        child: SafeArea(
-          child: Column(
-            children: <Widget>[
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: <Color>[
-                      Theme.of(context).colorScheme.primary,
-                      Theme.of(context).colorScheme.secondary,
-                    ],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    CircleAvatar(
-                      radius: 28,
-                      backgroundColor: Theme.of(
-                        context,
-                      ).colorScheme.onPrimary.withOpacity(0.15),
-                      child: Icon(
-                        Icons.movie_filter_rounded,
-                        size: 30,
-                        color: Theme.of(context).colorScheme.onPrimary,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      'Movie Explorer',
-                      style:
-                          Theme.of(context).textTheme.headlineSmall?.copyWith(
-                                color: Theme.of(context).colorScheme.onPrimary,
-                                fontWeight: FontWeight.bold,
-                              ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      'Recherchez des films et gerez vos favoris.',
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: Theme.of(
-                              context,
-                            ).colorScheme.onPrimary.withOpacity(0.9),
-                          ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 8),
-              _DrawerItem(
-                title: 'Recherche',
-                icon: Icons.search_rounded,
-                isSelected: _currentIndex == 0,
-                onTap: () => _selectPage(0),
-              ),
-              _DrawerItem(
-                title: 'Favoris',
-                icon: Icons.star_rounded,
-                isSelected: _currentIndex == 1,
-                onTap: () => _selectPage(1),
-              ),
-              const Spacer(),
-              const Divider(indent: 20, endIndent: 20),
-              Consumer<ThemeProvider>(
-                builder: (context, themeProvider, child) {
-                  return ListTile(
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 24),
-                    leading: Icon(
-                      themeProvider.isDarkMode
-                          ? Icons.dark_mode_rounded
-                          : Icons.light_mode_rounded,
-                    ),
-                    title: const Text('Thème Sombre'),
-                    trailing: Switch(
-                      value: themeProvider.isDarkMode,
-                      onChanged: (value) => themeProvider.toggleTheme(),
-                    ),
-                  );
-                },
-              ),
-              const SizedBox(height: 16),
-            ],
-          ),
-        ),
-      ),
+      drawer: _buildDrawer(theme),
       body: IndexedStack(
         index: _currentIndex,
         children: pages,
@@ -146,15 +74,113 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  void _selectPage(int index) {
-    Navigator.of(context).pop();
-    if (_currentIndex == index) {
-      return;
-    }
+  Widget _buildDrawer(ThemeData theme) {
+    return Drawer(
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.only(
+          topRight: Radius.circular(24),
+          bottomRight: Radius.circular(24),
+        ),
+      ),
+      child: Column(
+        children: [
+          _buildDrawerHeader(theme),
+          const SizedBox(height: 12),
+          _DrawerItem(
+            title: 'Search',
+            icon: Icons.search_rounded,
+            isSelected: _currentIndex == 0,
+            onTap: () => _selectPage(0),
+          ),
+          _DrawerItem(
+            title: 'Favorites',
+            icon: Icons.star_rounded,
+            isSelected: _currentIndex == 1,
+            onTap: () => _selectPage(1),
+          ),
+          const Spacer(),
+          const Divider(indent: 20, endIndent: 20),
+          Consumer<ThemeProvider>(
+            builder: (context, themeProvider, child) {
+              return ListTile(
+                contentPadding: const EdgeInsets.symmetric(horizontal: 24),
+                leading: Icon(
+                  themeProvider.isDarkMode
+                      ? Icons.dark_mode_rounded
+                      : Icons.light_mode_rounded,
+                  color: theme.colorScheme.primary,
+                ),
+                title: const Text('Dark Theme', style: TextStyle(fontWeight: FontWeight.w500)),
+                trailing: Switch(
+                  value: themeProvider.isDarkMode,
+                  onChanged: (value) => themeProvider.toggleTheme(),
+                ),
+              );
+            },
+          ),
+          const SizedBox(height: 16),
+        ],
+      ),
+    );
+  }
 
-    setState(() {
-      _currentIndex = index;
-    });
+  Widget _buildDrawerHeader(ThemeData theme) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(24, 60, 24, 32),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            theme.colorScheme.primary,
+            theme.colorScheme.primaryContainer,
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: const BorderRadius.only(
+          topRight: Radius.circular(24),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.onPrimary.withOpacity(0.2),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              Icons.movie_filter_rounded,
+              size: 40,
+              color: theme.colorScheme.onPrimary,
+            ),
+          ),
+          const SizedBox(height: 20),
+          Text(
+            'Movie Explorer',
+            style: theme.textTheme.headlineSmall?.copyWith(
+              color: theme.colorScheme.onPrimary,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Discover your next movie',
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: theme.colorScheme.onPrimary.withOpacity(0.8),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _selectPage(int index) {
+    FocusScope.of(context).unfocus();
+    Navigator.of(context).pop();
+    if (_currentIndex == index) return;
+    setState(() => _currentIndex = index);
   }
 }
 
@@ -173,7 +199,8 @@ class _DrawerItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
@@ -181,25 +208,19 @@ class _DrawerItem extends StatelessWidget {
         color: isSelected ? colorScheme.primaryContainer : Colors.transparent,
         borderRadius: BorderRadius.circular(16),
         child: ListTile(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
+          onTap: onTap,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           leading: Icon(
             icon,
-            color: isSelected
-                ? colorScheme.onPrimaryContainer
-                : colorScheme.onSurfaceVariant,
+            color: isSelected ? colorScheme.primary : colorScheme.onSurfaceVariant,
           ),
           title: Text(
             title,
             style: TextStyle(
-              fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-              color: isSelected
-                  ? colorScheme.onPrimaryContainer
-                  : colorScheme.onSurface,
+              fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+              color: isSelected ? colorScheme.primary : colorScheme.onSurface,
             ),
           ),
-          onTap: onTap,
         ),
       ),
     );

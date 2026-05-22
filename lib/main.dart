@@ -15,7 +15,7 @@ Future<void> main() async {
     await dotenv.load(fileName: '.env');
   } catch (_) {
     debugPrint(
-        'Fichier .env introuvable. Utilisation d\'une configuration vide.');
+        'The .env file was not found. Using an empty configuration.');
   }
 
   final favoritesProvider = FavoritesProvider();
@@ -56,15 +56,50 @@ class MyApp extends StatelessWidget {
             title: 'Movie Explorer',
             debugShowCheckedModeBanner: false,
             theme: ThemeData(
-              colorScheme: ColorScheme.fromSeed(seedColor: Colors.indigo),
+              colorScheme: ColorScheme.fromSeed(
+                seedColor: const Color(0xFF673AB7),
+                brightness: Brightness.light,
+              ),
               useMaterial3: true,
+              textTheme: const TextTheme(
+                headlineLarge: TextStyle(fontWeight: FontWeight.bold),
+                headlineSmall: TextStyle(fontWeight: FontWeight.bold),
+                titleLarge: TextStyle(fontWeight: FontWeight.w600),
+              ),
+              appBarTheme: const AppBarTheme(
+                centerTitle: true,
+                elevation: 0,
+                scrolledUnderElevation: 0,
+              ),
+              cardTheme: CardTheme(
+                elevation: 2,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+              ),
             ),
             darkTheme: ThemeData(
               colorScheme: ColorScheme.fromSeed(
-                seedColor: Colors.indigo,
+                seedColor: const Color(0xFF673AB7),
                 brightness: Brightness.dark,
               ),
               useMaterial3: true,
+              textTheme: const TextTheme(
+                headlineLarge: TextStyle(fontWeight: FontWeight.bold),
+                headlineSmall: TextStyle(fontWeight: FontWeight.bold),
+                titleLarge: TextStyle(fontWeight: FontWeight.w600),
+              ),
+              appBarTheme: const AppBarTheme(
+                centerTitle: true,
+                elevation: 0,
+                scrolledUnderElevation: 0,
+              ),
+              cardTheme: CardTheme(
+                elevation: 2,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+              ),
             ),
             themeMode: themeProvider.themeMode,
             home: HomeScreen(apiService: _apiService),

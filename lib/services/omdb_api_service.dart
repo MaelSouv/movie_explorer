@@ -25,7 +25,7 @@ class OmdbApiService {
 
     if (key.isEmpty || key == 'YOUR_API_KEY_HERE') {
       throw const OmdbApiException(
-        'Clé API OMDb manquante. Ajoutez `OMDB_API_KEY` dans le fichier `.env`.',
+        'Missing OMDb API key. Add `OMDB_API_KEY` to your `.env` file.',
       );
     }
 
@@ -46,7 +46,7 @@ class OmdbApiService {
       }
 
       throw OmdbApiException(
-        data['Error'] as String? ?? 'Erreur inconnue lors de la recherche.',
+        data['Error'] as String? ?? 'Unknown error during search.',
       );
     }
 
@@ -62,7 +62,7 @@ class OmdbApiService {
     if (data['Response'] == 'False') {
       throw OmdbApiException(
         data['Error'] as String? ??
-            'Impossible de charger les details du film.',
+            'Unable to load movie details.',
       );
     }
 
@@ -76,14 +76,14 @@ class OmdbApiService {
 
     if (response.statusCode != 200) {
       throw OmdbApiException(
-        'Erreur HTTP ${response.statusCode}. Impossible de contacter OMDb.',
+        'HTTP error ${response.statusCode}. Unable to contact OMDb.',
       );
     }
 
     try {
       return jsonDecode(response.body) as Map<String, dynamic>;
     } on FormatException {
-      throw const OmdbApiException('Réponse invalide reçue depuis OMDb.');
+      throw const OmdbApiException('Invalid response received from OMDb.');
     }
   }
 }

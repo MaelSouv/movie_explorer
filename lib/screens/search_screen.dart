@@ -56,10 +56,7 @@ class _SearchScreenState extends State<SearchScreen> {
     final query = rawQuery.trim();
 
     if (query.isEmpty) {
-      if (!mounted) {
-        return;
-      }
-
+      if (!mounted) return;
       setState(() {
         _lastQuery = '';
         _errorMessage = null;
@@ -77,19 +74,14 @@ class _SearchScreenState extends State<SearchScreen> {
 
     try {
       final movies = await widget.apiService.searchMovies(query);
-      if (!mounted) {
-        return;
-      }
+      if (!mounted) return;
 
       setState(() {
         _movies = movies;
         _isLoading = false;
       });
     } catch (error) {
-      if (!mounted) {
-        return;
-      }
-
+      if (!mounted) return;
       setState(() {
         _movies = <MovieSummary>[];
         _errorMessage = error.toString();
@@ -98,121 +90,137 @@ class _SearchScreenState extends State<SearchScreen> {
     }
   }
 
-  void _submitSearch() {
-    FocusScope.of(context).unfocus();
-    _debounce?.cancel();
-    _search(_controller.text);
-  }
-
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final favoritesProvider = context.watch<FavoritesProvider>();
 
-    return Column(
-      children: <Widget>[
-        Padding(
-          padding: const EdgeInsets.all(16),
-          child: Row(
-            children: <Widget>[
-              Expanded(
-                child: TextField(
-                  controller: _controller,
-                  textInputAction: TextInputAction.search,
-                  onSubmitted: (_) => _submitSearch(),
-                  decoration: const InputDecoration(
-                    labelText: 'Rechercher un film',
-                    hintText: 'Ex: Batman',
-                    border: OutlineInputBorder(),
-                    prefixIcon: Icon(Icons.search),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              FilledButton(
-                onPressed: _submitSearch,
-                child: const Text('Rechercher'),
-              ),
-            ],
+    return GestureDetector(
+      onTap: () => FocusScope.of(context).unfocus(),
+      behavior: HitTestBehavior.translucent,
+      child: Column(
+        children: [
+          _buildSearchBar(theme),
+          Expanded(
+            child: _buildContent(favoritesProvider, theme),
           ),
-        ),
-        if (_isLoading) const LinearProgressIndicator(),
-        Expanded(child: _buildBody(favoritesProvider)),
-      ],
+        ],
+      ),
     );
   }
 
-  Widget _buildBody(FavoritesProvider favoritesProvider) {
+  Widget _buildSearchBar(ThemeData theme) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+      child: Container(
+        decoration: BoxDecoration(
+          color: theme.colorScheme.surfaceContainerHighest.withOpacity(0.5),
+          borderRadius: BorderRadius.circular(24),
+        ),
+        child: TextField(
+          controller: _controller,
+          autofocus: false,
+          decoration: InputDecoration(
+            hintText: 'Search for a movie...',
+            prefixIcon: const Icon(Icons.search_rounded),
+            suffixIcon: _controller.text.isNotEmpty
+                ? IconButton(
+                    icon: const Icon(Icons.clear_rounded),
+                    onPressed: () {
+                      _controller.clear();
+                      _search('');
+                    },
+                  )
+                : null,
+            border: InputBorder.none,
+            contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildContent(FavoritesProvider favoritesProvider, ThemeData theme) {
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
     if (_errorMessage != null) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: <Widget>[
-              const Icon(Icons.error_outline, size: 48),
-              const SizedBox(height: 12),
-              Text(
-                _errorMessage!,
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 16),
-              FilledButton(
-                onPressed: _submitSearch,
-                child: const Text('Reessayer'),
-              ),
-            ],
-          ),
-        ),
+      return _buildMessageState(
+        Icons.error_outline_rounded,
+        'An error occurred',
+        _errorMessage!,
+        theme,
       );
     }
 
-    if (_lastQuery.isEmpty) {
-      return const Center(
-        child: Padding(
-          padding: EdgeInsets.all(24),
-          child: Text(
-            'Saisissez un titre et lancez une recherche.',
-            textAlign: TextAlign.center,
-          ),
-        ),
-      );
-    }
-
-    if (_movies.isEmpty && !_isLoading) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Text(
-            'Aucun film trouve pour "$_lastQuery".',
-            textAlign: TextAlign.center,
-          ),
-        ),
-      );
+    if (_movies.isEmpty) {
+      if (_lastQuery.isEmpty) {
+        return _buildMessageState(
+          Icons.movie_filter_rounded,
+          'Discover movies',
+          'Enter a movie title to start your search.',
+          theme,
+        );
+      } else {
+        return _buildMessageState(
+          Icons.search_off_rounded,
+          'No results',
+          'We found no movies matching "$_lastQuery".',
+          theme,
+        );
+      }
     }
 
     return ListView.builder(
+      padding: const EdgeInsets.only(bottom: 24),
+      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
       itemCount: _movies.length,
       itemBuilder: (context, index) {
         final movie = _movies[index];
-
         return MovieListTile(
           movie: movie,
           isFavorite: favoritesProvider.isFavorite(movie.imdbId),
-          onFavoriteToggle: () {
-            favoritesProvider.toggleFavorite(movie);
-          },
           onTap: () {
-            Navigator.of(context).push(
-              MaterialPageRoute<void>(
-                builder: (_) => MovieDetailScreen(
+            FocusScope.of(context).unfocus();
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => MovieDetailScreen(
                   movie: movie,
                   apiService: widget.apiService,
                 ),
               ),
             );
           },
+          onFavoriteToggle: () => favoritesProvider.toggleFavorite(movie),
         );
       },
+    );
+  }
+
+  Widget _buildMessageState(IconData icon, String title, String message, ThemeData theme) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 80, color: theme.colorScheme.primary.withOpacity(0.2)),
+            const SizedBox(height: 16),
+            Text(
+              title,
+              style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.outline),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

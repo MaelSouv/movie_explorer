@@ -16,8 +16,8 @@ class MovieSummary {
   factory MovieSummary.fromJson(Map<String, dynamic> json) {
     return MovieSummary(
       imdbId: json['imdbID'] as String? ?? '',
-      title: json['Title'] as String? ?? 'Titre inconnu',
-      year: json['Year'] as String? ?? 'Inconnue',
+      title: json['Title'] as String? ?? 'Unknown title',
+      year: json['Year'] as String? ?? 'Unknown',
       posterUrl: json['Poster'] as String? ?? '',
     );
   }
@@ -25,8 +25,8 @@ class MovieSummary {
   factory MovieSummary.fromStorage(Map<String, dynamic> json) {
     return MovieSummary(
       imdbId: json['imdbId'] as String? ?? '',
-      title: json['title'] as String? ?? 'Titre inconnu',
-      year: json['year'] as String? ?? 'Inconnue',
+      title: json['title'] as String? ?? 'Unknown title',
+      year: json['year'] as String? ?? 'Unknown',
       posterUrl: json['posterUrl'] as String? ?? '',
     );
   }
