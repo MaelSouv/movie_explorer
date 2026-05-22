@@ -21,78 +21,115 @@ class MovieListTile extends StatelessWidget {
     final theme = Theme.of(context);
     
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       decoration: BoxDecoration(
         color: theme.cardTheme.color ?? theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: theme.colorScheme.outlineVariant.withOpacity(0.8),
+          width: 1.2,
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+            color: Colors.black.withOpacity(0.12),
+            blurRadius: 16,
+            offset: const Offset(0, 8),
+          ),
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
           ),
         ],
       ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(16),
-          child: Padding(
-            padding: const EdgeInsets.all(12),
-            child: Row(
-              children: [
-                Hero(
-                  tag: 'movie-poster-${movie.imdbId}',
-                  child: PosterThumbnail(
-                    imageUrl: movie.posterUrl,
-                    width: 70,
-                    height: 100,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: Stack(
+          children: [
+            Positioned(
+              left: 0,
+              top: 0,
+              bottom: 0,
+              width: 5,
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      theme.colorScheme.primary,
+                      theme.colorScheme.primary.withOpacity(0.5),
+                    ],
                   ),
                 ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+              ),
+            ),
+            Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: onTap,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(18, 14, 14, 14),
+                  child: Row(
                     children: [
-                      Text(
-                        movie.title,
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
+                      Hero(
+                        tag: 'movie-poster-${movie.imdbId}',
+                        child: PosterThumbnail(
+                          imageUrl: movie.posterUrl,
+                          width: 70,
+                          height: 100,
                         ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
                       ),
-                      const SizedBox(height: 4),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: theme.colorScheme.secondaryContainer,
-                          borderRadius: BorderRadius.circular(6),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              movie.title,
+                              style: theme.textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: -0.5,
+                              ),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            const SizedBox(height: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: theme.colorScheme.primaryContainer.withOpacity(0.7),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(
+                                  color: theme.colorScheme.primary.withOpacity(0.2),
+                                ),
+                              ),
+                              child: Text(
+                                movie.year,
+                                style: theme.textTheme.labelSmall?.copyWith(
+                                  color: theme.colorScheme.onPrimaryContainer,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
-                        child: Text(
-                          movie.year,
-                          style: theme.textTheme.labelSmall?.copyWith(
-                            color: theme.colorScheme.onSecondaryContainer,
-                            fontWeight: FontWeight.bold,
-                          ),
+                      ),
+                      IconButton(
+                        onPressed: onFavoriteToggle,
+                        icon: Icon(
+                          isFavorite ? Icons.star_rounded : Icons.star_outline_rounded,
+                          size: 32,
                         ),
+                        color: isFavorite ? Colors.amber : theme.colorScheme.outline.withOpacity(0.6),
+                        tooltip: isFavorite ? 'Remove from favorites' : 'Add to favorites',
                       ),
                     ],
                   ),
                 ),
-                IconButton(
-                  onPressed: onFavoriteToggle,
-                  icon: Icon(
-                    isFavorite ? Icons.star_rounded : Icons.star_outline_rounded,
-                    size: 28,
-                  ),
-                  color: isFavorite ? Colors.amber : theme.colorScheme.outline,
-                  tooltip: isFavorite ? 'Remove from favorites' : 'Add to favorites',
-                ),
-              ],
+              ),
             ),
-          ),
+          ],
         ),
       ),
     );
